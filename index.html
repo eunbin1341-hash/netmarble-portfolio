@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#120a1c">
+<meta name="description" content="기획자 표은빈의 AI Game Maker 지원 포트폴리오. 직접 만든 미니게임과 프로젝트를 담았어요.">
+<script>document.documentElement.classList.add('js')</script>
+<title>표은빈 · AI Game Maker</title>
+<style>
+/* Hallmark · audit + polish · genre: playful · built: the project · redesign: polish
+   critique: the arcade voice carries it; fixed contrast, motion, no-JS visibility, dot-joined meta and dashes.
+   waive 54/67: tags and HUD in capitals are the arcade cabinet voice, the concept itself
+   waive 48/24b: polish keeps the owner's system and spacing
+   waive 38iii: the pink phrase in the hero is the signature, once on the page
+   waive 2a: the avatar glow is one pink hue fading out, not a two-hue gradient
+   waive 67: the linter reads Korean text as capitals; only tags and the HUD are true capitals (see 54/67 above)
+   waive 26b: the page has no form controls to disable
+   waive 3/29: side stripes and the header blur are part of the existing system */
+/*
+VOICE: 밝고 자신감 있는 게임 런처. 짧게 말하고 바로 플레이시킨다.
+IDEA: 포트폴리오 = 한 판의 게임. 스크롤이 경험치, 섹션이 레벨, 첫 화면이 실제 플레이 화면.
+PICTURE: 첫 화면의 픽셀 에임 게임 '버그 헌터' (문제를 쏴서 해결한다).
+COLOUR and TYPE: 딥 플럼 블랙 + 네온 마젠타 + 시안 보조. 넷마블체 B/M, 픽셀 블록 그림자.
+LAYOUT: 상단 XP 바 고정, 게임 → 가치관 → 레벨업 로그 → 스테이지(프로젝트) → AI 워크플로우 → 퀘스트 보드.
+*/
+@font-face{font-family:NM;src:url(fonts/netmarbleB.woff2) format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:NM;src:url(fonts/netmarbleM.woff2) format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:NM;src:url(fonts/netmarbleL.woff2) format("woff2");font-weight:300;font-display:swap}
+:root{color-scheme:dark;--ease-out:cubic-bezier(.23,1,.32,1);--bg:#120a1c;--bg2:#1b1029;--panel:#21142f;--line:#3a2552;--ink:#f6eefc;--mut:#b9a6cc;--pink:#ff3ea5;--pink2:#ff8ccc;--cyan:#3ef0ff;--gold:#ffd84a;--sh:#7a1350}
+:root[data-theme=light],:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{scroll-behavior:smooth;scroll-padding-top:80px;overflow-x:clip}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.7 NM,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;overflow-x:clip;word-break:keep-all;overflow-wrap:break-word;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+ background-image:radial-gradient(circle,#ffffff10 1px,transparent 1.2px);background-size:22px 22px}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:90;background:repeating-linear-gradient(0deg,#0000 0 3px,#00000012 3px 4px)}
+a{color:inherit}
+h1,h2,h3{font-weight:700;line-height:1.22;letter-spacing:-.01em;margin:0;text-wrap:balance}
+h4{line-height:1.35}
+p{margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding:0 max(4vw,16px)}
+.band{padding:clamp(56px,8vw,110px) 0}
+.tag{display:inline-block;font:700 13px NM,sans-serif;color:var(--bg);background:var(--pink);padding:4px 10px;box-shadow:3px 3px 0 var(--sh)}
+.tag.c{background:var(--cyan);box-shadow:3px 3px 0 #0c5a63}
+.sec-h{display:flex;flex-direction:column;gap:14px;margin-bottom:36px}
+.sec-h h2{font-size:clamp(30px,4.4vw,46px)}
+.sec-h p{color:var(--mut);max-width:640px;font-size:17px}
+.sec-h .tag{align-self:flex-start}
+.hud[hidden]{display:none}
+.px{border:3px solid var(--line);background:var(--panel);box-shadow:6px 6px 0 #0a0510}
+.btn{font:700 16px NM,sans-serif;border:0;cursor:pointer;padding:14px 22px;min-height:48px;color:var(--bg);background:var(--pink);box-shadow:0 5px 0 var(--sh),5px 5px 0 #0a0510;transition:transform 120ms var(--ease-out),box-shadow 120ms var(--ease-out),border-color 150ms,color 150ms;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+a,button,summary{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.btn,.tabs button,nav a,.jump a,summary,.game{-webkit-user-select:none;user-select:none}
+.game canvas{-webkit-touch-callout:none}
+@media(hover:hover) and (pointer:fine){.btn:hover{transform:translateY(-2px);box-shadow:0 7px 0 var(--sh),6px 7px 0 #0a0510}}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--sh);transition-duration:60ms}
+.btn.ghost{background:transparent;border:3px solid var(--line);box-shadow:none;color:var(--ink)}
+@media(hover:hover) and (pointer:fine){.btn.ghost:hover{border-color:var(--cyan);color:var(--cyan)}}
+:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
+
+/* header + xp */
+header{position:sticky;top:0;z-index:50;background:#120a1ce6;backdrop-filter:blur(8px);border-bottom:3px solid var(--line)}
+.hd{display:flex;align-items:center;gap:18px;height:62px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;text-decoration:none;flex:none}
+.logo i{width:30px;height:30px;display:grid;place-items:center;background:var(--pink);color:var(--bg);font-style:normal;font-size:14px;box-shadow:3px 3px 0 var(--sh)}
+nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin-left:auto}
+nav a{flex:none;text-decoration:none;color:var(--mut);font-size:14px;padding:8px 11px;border:2px solid transparent;transition:color .15s,background-color .15s}
+@media(hover:hover) and (pointer:fine){nav a:hover{color:var(--pink2)}}
+@media(max-width:1100px) and (min-width:761px){nav a{padding:8px 8px;font-size:13.5px}.hd{gap:12px}}
+nav a.on{color:var(--bg);background:var(--pink);box-shadow:3px 3px 0 var(--sh)}
+.lv{flex:none;margin-left:auto;font:700 13px NM;color:var(--gold);min-width:54px;text-align:right}
+.xp{height:6px;background:#2a1a3c;position:relative}
+.xp b{position:absolute;inset:0;transform:scaleX(0);transform-origin:left;will-change:transform;background:linear-gradient(90deg,var(--pink),var(--cyan));box-shadow:0 0 12px var(--pink)}
+.xp s{position:absolute;top:-3px;width:3px;height:12px;background:#ffffff55}
+@media(max-width:760px){.hd{flex-wrap:wrap;height:auto;padding-top:10px;padding-bottom:8px;row-gap:8px}nav{order:3;width:100%;margin:0}nav a{font-size:13px;padding:6px 9px}}
+
+/* hero */
+.hero{padding:clamp(26px,3.5vw,44px) 0 40px}
+.hero-top{margin-bottom:28px}
+.hero h1{font-size:clamp(34px,5.2vw,62px);letter-spacing:-.02em;line-height:1.18;text-shadow:3px 3px 0 #0a0510}
+.hero h1 em{font-style:normal;color:var(--pink);text-shadow:3px 3px 0 #0a0510,0 0 24px #ff3ea540}
+.role{margin-top:10px;min-height:1.6em;font-size:clamp(17px,2vw,21px);color:var(--cyan)}
+.typing::after{content:"▌";animation:blink 1s steps(1) infinite;color:var(--pink)}
+@keyframes blink{50%{opacity:0}}
+.hero-side{margin-top:14px;max-width:560px;color:var(--mut);font-size:17px;line-height:1.7}
+.hero-side strong{color:var(--ink)}
+
+/* game */
+.game{position:relative;border:4px solid var(--pink);background:#0b0612;box-shadow:8px 8px 0 var(--sh),0 0 40px #ff3ea533;aspect-ratio:16/8.2;min-height:300px;overflow:hidden}
+.game canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;cursor:none;touch-action:manipulation}
+.hud{position:absolute;inset:0 0 auto 0;display:flex;justify-content:space-between;gap:10px;padding:10px 14px;font:700 14px NM;pointer-events:none;text-shadow:2px 2px 0 #000}
+.hud span b{color:var(--gold)}
+@media(max-width:420px){.hud{font-size:12px;gap:6px;padding:8px 10px}.hud .cc{display:none}}
+.ov{position:absolute;inset:0;display:flex;text-align:center;background:#0b0612f2;padding:24px;overflow-y:auto}
+.ov[hidden]{display:none}
+#ovEnd:not([hidden]) > div{animation:resIn 280ms var(--ease-out)}
+@keyframes resIn{from{opacity:0;transform:scale(.96)}}
+.res div{animation:resIn 280ms var(--ease-out) backwards}.res div:nth-child(2){animation-delay:50ms}.res div:nth-child(3){animation-delay:90ms}.res div:nth-child(4){animation-delay:140ms}
+.ov > div{margin:auto}
+.ov h2{font-size:clamp(26px,4vw,40px);color:var(--pink);text-shadow:3px 3px 0 var(--sh)}
+.ov p{color:var(--mut);margin:12px auto 20px;max-width:480px;font-size:16px;line-height:1.65}
+.legend{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 22px;margin:0 auto 24px;font-size:15px;max-width:560px}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend canvas{position:static;width:24px;height:24px;cursor:auto}
+.ov .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.res{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px auto 18px;max-width:560px}
+.res div{border:3px solid var(--line);padding:10px 6px;background:var(--panel)}
+.res b{font-variant-numeric:tabular-nums;display:block;font-size:clamp(20px,3vw,28px);color:var(--gold)}
+.res small{color:var(--mut);font-size:13px}
+.why{margin-top:28px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.why div{padding:16px 18px;border-left:3px solid var(--cyan);background:#ffffff08}
+.why b{display:block;color:var(--cyan);font-size:15px;margin-bottom:6px}
+.why p{font-size:15px;line-height:1.65;color:var(--mut)}
+@media(max-width:860px){.why{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.why{grid-template-columns:1fr}.res{grid-template-columns:1fr 1fr}.game{aspect-ratio:auto;height:440px}}
+
+.jump{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;margin-top:18px;font-size:13px}
+.jump span{color:var(--cyan);margin-right:4px}
+.jump a{text-decoration:none;color:var(--ink);border:2px solid var(--line);padding:6px 12px;min-height:40px;display:inline-flex;align-items:center;transition:border-color .15s,color .15s}
+@media(hover:hover) and (pointer:fine){.jump a:hover{border-color:var(--pink);color:var(--pink2)}}
+/* player */
+.pl{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.4fr);gap:24px;align-items:stretch}
+@media(max-width:860px){.pl{grid-template-columns:1fr}}
+.avatar{position:relative;padding:28px 24px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;background:radial-gradient(circle at 50% 38%,#ff3ea533,transparent 60%),var(--panel)}
+.avatar canvas{width:176px;height:286px;image-rendering:pixelated;animation:bob 1.6s steps(2) infinite;filter:drop-shadow(3px 0 0 #ff3ea5) drop-shadow(-3px 0 0 #3ef0ff) drop-shadow(6px 6px 0 #0a0510)}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.ped{width:200px;height:16px;background:var(--line);box-shadow:0 6px 0 #0a0510;margin-top:6px}
+.plate{margin-top:18px;font-size:24px;font-weight:700}
+.plate small{display:block;font-size:14px;color:var(--cyan);font-weight:500;margin-top:4px}
+.traits{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:16px}
+.traits span{font-size:13px;padding:4px 9px;background:#ffffff0a;border:2px solid var(--line)}
+.traits span::before{content:"★ ";color:var(--gold)}
+.pcard{display:flex;flex-direction:column}
+.tabs{display:flex;border-bottom:3px solid var(--line)}
+.tabs button{flex:1;font:700 15px NM,sans-serif;color:var(--mut);background:transparent;border:0;padding:14px 8px;min-height:48px;cursor:pointer;border-right:3px solid var(--line)}
+.tabs button:last-child{border-right:0}
+.tabs button{transition:color 150ms,background-color 150ms}
+@media(hover:hover) and (pointer:fine){.tabs button[aria-selected=false]:hover{color:var(--ink);background:#ffffff08}}
+.tabs button:active{background:#ffffff10}
+.pane:not([hidden]){animation:paneIn 200ms var(--ease-out)}
+@keyframes paneIn{from{opacity:0;transform:translateY(4px)}}
+.tabs button[aria-selected=true]{color:var(--bg);background:var(--pink)}
+.pane{padding:24px;display:grid;gap:14px;align-content:start}
+.pane[hidden]{display:none}
+.pane .lead{font-size:clamp(19px,2.2vw,23px);font-weight:700;line-height:1.4}
+.pane .lead em{font-style:normal;color:var(--pink2)}
+.pane p{color:var(--mut);font-size:15px}
+.map{display:grid;gap:10px}
+.map div{display:grid;grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);gap:8px;align-items:stretch;font-size:15px;line-height:1.55}
+.map i{align-self:center}
+.map b{padding:10px 12px;background:#ffffff08;border-left:3px solid var(--pink);font-weight:500}
+.map i{font-style:normal;color:var(--gold);text-align:center}
+.map span{padding:10px 12px;background:#3ef0ff10;border-left:3px solid var(--cyan)}
+@media(max-width:560px){.map div{grid-template-columns:1fr}.map i{transform:rotate(90deg)}}
+.job{padding:16px 18px;border:3px solid var(--line);background:#ffffff05}
+.job .t{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;margin-bottom:8px}
+.job h4{margin:0;font-size:18px}
+.job time{font-size:13px;color:var(--mut)}
+.job .v{font-size:15px;color:var(--ink)}
+.job .v b{color:var(--pink2)}
+.job .g{font-size:14px;color:var(--cyan);margin-top:6px}
+.job .prod{font-size:14px;color:var(--mut);margin-bottom:10px}
+.job ul{margin:0 0 12px;padding:0;list-style:none;display:grid;gap:6px}
+.grps{display:grid;gap:14px;margin:4px 0 14px}
+.grp h5{margin:0 0 4px;font-size:15px;color:var(--cyan);font-weight:700}
+.grp p{margin:0;font-size:15px;line-height:1.65;color:var(--ink)!important}
+.grp p b{color:var(--gold);font-weight:700}
+.job li{font-size:15px;line-height:1.65;padding-left:16px;position:relative;color:var(--ink)}
+.job li::before{content:"";position:absolute;left:2px;top:.62em;width:6px;height:6px;background:var(--pink)}
+.job li b{color:var(--gold);font-weight:700}
+.job q{display:block;quotes:none;font-size:15px;padding:10px 12px;background:#ff3ea514;border-left:3px solid var(--pink);margin-bottom:8px}
+.job q::before{content:"쌓은 관점: ";color:var(--pink2);font-weight:700}
+.todo{border-style:dashed;border-color:var(--gold)}
+.todo .note{font-size:13px;color:var(--gold);margin-top:6px}
+.genre{display:grid;gap:12px}
+.genre div{font-size:14px}
+.bar{height:12px;background:#2a1a3c;margin-top:4px;position:relative}
+.bar i{position:absolute;inset:0 auto 0 0;width:var(--w);background:var(--pink);transform:scaleX(0);transform-origin:left;transition:transform 1.2s steps(12)}
+.bar.c i{background:var(--cyan)}
+.on .bar i,.pane:not([hidden]) .bar i.go{transform:scaleX(1)}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:0 0 28px}
+.stat{padding:20px;text-align:left;display:flex;flex-direction:column;gap:10px}
+.stat b{font-variant-numeric:tabular-nums;display:block;font-size:clamp(28px,4vw,40px);color:var(--pink);line-height:1}
+.stat b small{font-size:.55em;color:var(--pink2)}
+.stat span{font-size:15px;line-height:1.5;color:var(--ink)}
+.stat span small{display:block;margin-top:2px;font-size:13px;color:var(--mut)}
+a.stat{text-decoration:none;color:inherit;transition:border-color 200ms,transform 200ms var(--ease-out)}
+a.stat:active{transform:scale(.98)}
+@media(hover:hover) and (pointer:fine){a.stat:hover{border-color:var(--pink)}}
+@media(max-width:760px){.stats{grid-template-columns:1fr 1fr}}
+
+/* values */
+.vals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.val{padding:26px 24px;position:relative;transition:transform 200ms var(--ease-out),box-shadow 200ms var(--ease-out),border-color 200ms}
+@media(hover:hover) and (pointer:fine){.val:hover{transform:translate(-3px,-3px);box-shadow:9px 9px 0 #0a0510;border-color:#55357a}}
+.val .ic{width:44px;height:44px;margin-bottom:16px}
+.val h3{font-size:22px;margin-bottom:10px}
+.val p{color:var(--mut);font-size:15px}
+.val{display:flex;flex-direction:column}
+.val .ev{margin-top:auto;padding-top:14px;border-top:2px dashed var(--line);font-size:15px;color:var(--pink2)}
+.val > p:not(.ev):not(.gm){margin-bottom:16px}
+.val .gm{margin-top:8px;font-size:15px;color:var(--cyan)}
+@media(max-width:860px){.vals{grid-template-columns:1fr}}
+
+/* level log */
+.log{position:relative;display:grid;gap:18px;padding-left:46px}
+.log::before{content:"";position:absolute;left:15px;top:6px;bottom:6px;width:4px;background:repeating-linear-gradient(var(--line) 0 8px,transparent 8px 14px)}
+.lvl{position:relative;padding:22px 24px}
+.lvl::before{content:attr(data-lv);position:absolute;left:-46px;top:20px;width:34px;height:34px;display:grid;place-items:center;font:700 13px NM;background:var(--bg2);border:3px solid var(--line);color:var(--mut)}
+.lvl.done::before{background:var(--pink);border-color:var(--pink);color:var(--bg);box-shadow:3px 3px 0 var(--sh)}
+.lvl.now::before{background:var(--cyan);border-color:var(--cyan);color:var(--bg);animation:pulse 1.4s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 8px #3ef0ff33}}
+.lvl .t{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin-bottom:8px}
+.lvl h3{font-size:21px}
+.lvl time{font-size:14px;color:var(--mut)}
+.lvl p{color:var(--mut);font-size:15px}
+.lvl.next{border-style:dashed;background:transparent}
+
+/* projects */
+.feat{display:grid;grid-template-columns:1.1fr 1fr;gap:0;margin-bottom:22px}
+.feat .art{background:linear-gradient(160deg,#2b1340,#0e0717);border-right:3px solid var(--line);position:relative;min-height:300px;overflow:hidden}
+.feat .art svg{position:absolute;inset:0;width:100%;height:100%}
+.feat .body{padding:28px}
+@media(max-width:860px){.feat{grid-template-columns:1fr}.feat .art{border-right:0;border-bottom:3px solid var(--line);min-height:220px}}
+.meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;color:var(--mut);margin:10px 0 16px}
+.meta span+span::before{content:"/";margin-right:14px;color:var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}
+.chips span{font-size:13px;padding:3px 9px;border:2px solid var(--line);color:var(--pink2)}
+.whr{display:grid;gap:10px;margin:14px 0}
+.whr div{display:grid;grid-template-columns:64px 1fr;gap:12px;font-size:15px;line-height:1.65}
+.whr b{color:var(--cyan);font-size:13px;padding-top:2px}
+.whr p{color:var(--ink)}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start}
+.card.wide{grid-column:1/-1}
+@media(max-width:760px){.cards{grid-template-columns:1fr}}
+.card{padding:24px;display:flex;flex-direction:column}
+.card h3{font-size:21px}
+.card .big{margin:16px 0 6px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.card .big b{font-size:clamp(26px,3.4vw,34px);color:var(--gold)}
+.card .big span{color:var(--mut);font-size:14px}
+details{margin-top:auto;border-top:2px dashed var(--line);padding-top:12px}
+summary{cursor:pointer;color:var(--pink2);font-size:15px;list-style:none;min-height:32px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸ ";display:inline-block;transition:transform .2s}
+details[open] summary::before{transform:rotate(90deg)}
+details[open] > div{animation:paneIn 220ms var(--ease-out)}
+@media(hover:hover) and (pointer:fine){summary:hover{color:var(--ink)}}
+.gal{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:22px}
+.mini{padding:18px}
+.mini h4{margin:0 0 6px;font-size:17px}
+.mini p{font-size:15px;line-height:1.6;color:var(--mut)}
+.mini-link{display:inline-flex;align-items:center;min-height:40px;margin-top:6px;font:700 14px NM,sans-serif;color:var(--pink2);text-decoration:none;transition:color 150ms}
+@media(hover:hover) and (pointer:fine){.mini-link:hover{color:var(--ink)}}
+.mini{transition:border-color .2s}@media(hover:hover) and (pointer:fine){.mini:hover{border-color:#55357a}}
+@media(max-width:760px){.gal{grid-template-columns:1fr}}
+
+/* ai workflow */
+.flow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+@media(max-width:760px){.flow{grid-template-columns:1fr}}
+.side{padding:24px}
+.side h3{font-size:20px;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.side ul{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+.side li{padding:12px 14px;background:#ffffff07;border-left:3px solid var(--pink);font-size:15px}
+.side.ai li{border-color:var(--cyan)}
+.side li small{display:block;color:var(--mut);font-size:14px;margin-top:2px}
+.rule{margin-top:22px;padding:20px 24px;border:3px dashed var(--pink);font-size:17px}
+.rule b{color:var(--pink)}
+
+/* why neo */
+.neo{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media(max-width:760px){.neo{grid-template-columns:1fr}}
+.neo .px{padding:24px}
+.neo h3{font-size:20px;margin-bottom:10px}
+.neo p{color:var(--mut);font-size:15px}
+/* neo: reading log */
+.readlog{list-style:none;margin:20px 0 0;padding:0;display:grid;gap:10px}
+.readlog li{display:grid;grid-template-columns:88px 1fr 64px;align-items:center;gap:12px;font-size:15px}
+.readlog b{font-weight:700}
+.readlog .m{height:10px;background:#2a1a3c;position:relative;overflow:hidden}
+.readlog .m i{position:absolute;inset:0;background:var(--pink);transform-origin:left}
+.readlog .m.c i{background:var(--cyan)}
+.readlog small{font-size:14px;color:var(--pink2);text-align:right}
+.readlog .m.c+small{color:var(--cyan)}
+.js .readlog .m i{transform:scaleX(0);transition:transform 900ms steps(10)}
+.js .on .readlog .m i{transform:scaleX(var(--w))}
+.readlog .m i{transform:scaleX(var(--w))}
+/* neo: skill chips */
+.chips-tab{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 16px}
+.chips-tab button{font:700 14px NM,sans-serif;color:var(--mut);background:transparent;border:2px solid var(--line);padding:8px 14px;min-height:44px;cursor:pointer;transition:color 150ms,border-color 150ms,background-color 150ms,transform 120ms var(--ease-out)}
+.chips-tab button:active{transform:scale(.97)}
+@media(hover:hover) and (pointer:fine){.chips-tab button[aria-selected=false]:hover{border-color:var(--pink2);color:var(--ink)}}
+.chips-tab button[aria-selected=true]{background:var(--pink);border-color:var(--pink);color:var(--bg);box-shadow:3px 3px 0 var(--sh)}
+.stage-box{border:3px solid var(--line);background:#0b0612;padding:18px 18px 16px}
+.pk[hidden]{display:none}
+.pk{animation:paneIn 200ms var(--ease-out)}
+.viz{height:150px;position:relative;margin-bottom:14px;border-bottom:3px solid var(--line)}
+.pk-t{font-weight:700;font-size:17px;color:var(--ink)!important}
+.pk-d{margin-top:4px}
+.viz .cap{position:absolute;top:0;right:0;font:700 13px NM,sans-serif;color:var(--ink)}
+.viz.viz-live{margin-bottom:40px}
+.viz-live .ax{position:absolute;bottom:-28px;width:50%;text-align:center;font-size:13px;color:var(--pink2)}
+.viz-live .ax.b{left:0}.viz-live .ax.f{left:50%;color:var(--cyan)}
+/* live: VOC bars, patch, drop */
+.viz-live{display:flex;align-items:flex-end;gap:10px;padding:0 6px}
+.viz-live i{flex:1;height:var(--h);background:var(--pink);transform-origin:bottom}
+.viz-live i.a{background:var(--cyan)}
+.viz-live .flag{position:absolute;left:50%;top:10px;bottom:0;border-left:3px dashed var(--gold)}
+.viz-live .flag::before{content:"PATCH";position:absolute;top:-2px;left:6px;font:700 12px NM,sans-serif;color:var(--gold)}
+/* ip: fan reaction per scene */
+.viz-ip{display:grid;align-content:center;gap:12px}
+.scene{display:grid;grid-template-columns:96px 1fr 70px;align-items:center;gap:10px;font-size:14px}
+.scene .m{height:10px;background:#2a1a3c;position:relative;overflow:hidden}
+.scene .m i{position:absolute;inset:0;background:var(--pink);transform-origin:left;transform:scaleX(var(--w))}
+.scene.x .m i{background:var(--line)}
+.scene em{font-style:normal;color:var(--pink2);font-size:13px;text-align:right}
+.scene.x em{color:var(--gold)}
+/* ai: prompt to playable */
+.viz-ai{display:grid;align-content:center;gap:14px}
+.neo .term{font:500 14px NM,sans-serif;color:var(--cyan)}
+.term::before{content:"> ";color:var(--pink)}
+.blocks{display:grid;grid-template-columns:repeat(10,18px);gap:4px}
+.blocks i{width:18px;height:18px;background:var(--pink)}
+.blocks i:nth-child(3n){background:var(--cyan)}.blocks i:nth-child(5n){background:var(--gold)}
+.ready{justify-self:start;font:700 13px NM,sans-serif;color:var(--bg);background:var(--gold);padding:4px 10px;box-shadow:3px 3px 0 #6b5300}
+/* motion: only after the card is on screen, restarted on every chip */
+.js .perk .viz-live i,.js .perk .scene .m i{transform:scale(1,0)}
+.js .perk .scene .m i{transform:scaleX(0)}
+.js .perk .viz-live .flag,.js .perk .viz .cap,.js .perk .scene em,.js .perk .blocks i,.js .perk .ready{opacity:0}
+.js .perk .term{clip-path:inset(0 100% 0 0)}
+.js .perk.on .play .viz-live i{animation:growY 420ms var(--ease-out) forwards;animation-delay:calc(var(--n)*70ms)}
+.js .perk.on .play .viz-live .flag{animation:dropIn 280ms var(--ease-out) 260ms forwards}
+.js .perk.on .play .viz .cap{animation:fadeUp 300ms var(--ease-out) 700ms forwards}
+.js .perk.on .play .scene .m i{animation:growX 600ms var(--ease-out) forwards;animation-delay:calc(var(--n)*120ms)}
+.js .perk.on .play .scene em{animation:popIn 260ms var(--ease-out) forwards;animation-delay:calc(var(--n)*120ms + 500ms)}
+.js .perk.on .play .term{animation:typeIn 800ms steps(18) forwards}
+.js .perk.on .play .blocks i{animation:popIn 200ms var(--ease-out) forwards;animation-delay:calc(850ms + var(--n)*35ms)}
+.js .perk.on .play .ready{animation:popIn 260ms var(--ease-out) 1650ms forwards}
+@keyframes growY{from{transform:scale(1,0)}to{transform:scale(1,1)}}
+@keyframes growX{from{transform:scaleX(0)}to{transform:scaleX(var(--w))}}
+@keyframes dropIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes popIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+@keyframes typeIn{to{clip-path:inset(0 0 0 0)}}
+@media(prefers-reduced-motion:reduce){.js .perk .viz *,.js .perk .viz{opacity:1!important;clip-path:none!important}.js .perk .viz-live i{transform:none!important}.js .perk .scene .m i{transform:scaleX(var(--w))!important}.js .readlog .m i{transform:scaleX(var(--w))}}
+@media(max-width:420px){.scene{grid-template-columns:84px 1fr 56px}.blocks{grid-template-columns:repeat(10,minmax(0,1fr))}.blocks i{width:auto;aspect-ratio:1}}
+
+
+/* contact */
+.cta{padding:clamp(28px,4vw,48px);text-align:center;border-color:var(--pink)}
+.cta h2{font-size:clamp(28px,4.4vw,44px);margin-bottom:12px}
+.cta p{color:var(--mut);margin-bottom:22px}
+.cta .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.mail{margin-top:16px;font-size:15px;color:var(--pink2)}
+footer{padding:30px 0 40px;color:var(--mut);font-size:13px;text-align:center}
+
+/* reveal + toast */
+.js .rv{opacity:0;transform:translateY(16px);transition:opacity 400ms var(--ease-out),transform 400ms var(--ease-out)}
+.js :is(.stats,.vals,.cards,.gal,.flow,.neo,.log) > .rv:nth-child(2){transition-delay:60ms}
+.js :is(.stats,.vals,.cards,.gal,.flow,.neo,.log) > .rv:nth-child(3){transition-delay:110ms}
+.js :is(.stats,.vals,.cards,.gal,.flow,.neo,.log) > .rv:nth-child(4){transition-delay:150ms}
+.js .rv.on{opacity:1;transform:none}
+.toast{position:fixed;left:50%;top:84px;z-index:80;transform:translate(-50%,-20px);opacity:0;pointer-events:none;font:700 18px NM;color:var(--bg);background:var(--gold);padding:10px 18px;box-shadow:4px 4px 0 #6b5300;transition:transform 250ms var(--ease-out),opacity 200ms var(--ease-out)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition-property:opacity,color,background-color,border-color!important;transition-delay:0s!important}.js .rv{transform:none}.bar i{transform:scaleX(1)}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header>
+ <div class="wrap hd">
+  <a class="logo" href="#top"><i>EB</i>표은빈</a>
+  <nav id="nav">
+   <a href="#play">Play</a><a href="#me">Player</a><a href="#values">가치관</a><a href="#log">레벨업 로그</a><a href="#stages">프로젝트</a><a href="#ai">AI 워크플로우</a><a href="#neo">Why NEO</a><a href="#contact">Contact</a>
+  </nav>
+  <span class="lv" id="lvTxt">Lv.1</span>
+ </div>
+ <div class="xp" aria-hidden="true"><b id="xp"></b></div>
+</header>
+
+<main id="top">
+<section class="hero" id="play">
+ <div class="wrap">
+  <div class="hero-top">
+   <div>
+    <span class="tag">2026 넷마블네오 AI 인턴십 / AI Game Maker 지원</span>
+    <h1 style="margin-top:18px">문제를 찾던 기획자,<br><em>직접 만드는 사람</em>이 되다</h1>
+    <p class="role"><span id="typed" class="typing"></span></p>
+    <p class="hero-side"><strong>기획자 표은빈.</strong> 문제를 찾고, AI와 함께 끝까지 만듭니다.</p>
+   </div>
+  </div>
+
+  <div class="game" id="game">
+   <canvas id="cv" width="480" height="246" aria-label="버그 헌터 미니게임"></canvas>
+   <div class="hud" id="hud" hidden><span>SCORE <b id="hS">0</b></span><span>COMBO <b id="hC">x1</b></span><span>Lv.<b id="hL">1</b></span><span>TIME <b id="hT">30</b></span></div>
+   <div class="ov" id="ovStart">
+    <div>
+     <h2>BUG HUNTER</h2>
+     <p>30초 동안 서비스에 숨어든 문제를 쏴서 해결하세요. 점수가 쌓이면 레벨업합니다.</p>
+     <div class="legend">
+      <span><canvas aria-hidden="true" data-spr="bug" width="8" height="8"></canvas>버그 +10</span>
+      <span><canvas aria-hidden="true" data-spr="voc" width="8" height="8"></canvas>반복 VOC +30</span>
+      <span><canvas aria-hidden="true" data-spr="heart" width="8" height="8"></canvas>잘 되는 기능 / 쏘면 -20</span>
+     </div>
+     <div class="row"><button class="btn" id="bStart">▶ PLAY</button><a class="btn ghost" href="#me">건너뛰기</a></div>
+    </div>
+   </div>
+   <div class="ov" id="ovEnd" hidden>
+    <div>
+     <h2 id="rTitle">CLEAR!</h2>
+     <div class="res"><div><b id="rS">0</b><small>점수</small></div><div><b id="rA">0%</b><small>명중률</small></div><div><b id="rC">0</b><small>최대 콤보</small></div><div><b id="rR">B</b><small>랭크</small></div></div>
+     <p id="rBest"></p>
+     <div class="row"><button class="btn" id="bAgain">↻ 다시 하기</button><a class="btn ghost" href="#me">플레이어 보기 ↓</a></div>
+     <div class="jump"><span>STAGE SELECT</span><a href="#me">Player</a><a href="#values">가치관</a><a href="#log">레벨업 로그</a><a href="#stages">프로젝트</a><a href="#ai">AI 워크플로우</a><a href="#contact">Contact</a></div>
+    </div>
+   </div>
+  </div>
+
+  <div class="why rv">
+   <div><b>코어 루프</b><p>찾는다 → 판단한다 → 쏜다 → 보상. 기획 업무의 흐름을 3초 단위로 압축한 구조예요.</p></div>
+   <div><b>판단 요소</b><p>하트는 이미 잘 되는 기능. 움직이는 건 다 쏘고 싶지만, 건드리지 않는 것도 실력이에요.</p></div>
+   <div><b>난이도 곡선</b><p>등장 간격 0.9초 → 0.45초, 생존 시간도 짧아져요. 후반 10초에 긴장감이 몰려요.</p></div>
+   <div><b>보상 설계</b><p>연속 명중 5회 x2, 10회 x3. 반복 VOC는 작고 빨리 사라지지만 3배 점수예요.</p></div>
+  </div>
+
+ </div>
+</section>
+
+<section class="band" id="me" style="background:var(--bg2)">
+ <div class="wrap">
+  <div class="sec-h rv"><span class="tag c">PLAYER CARD</span><h2>플레이어를 소개합니다</h2><p>서비스 기획자로 살아오며 쌓은 관점이, 게임을 만들 때 어디에 쓰이는지 정리했어요.</p></div>
+  <div class="pl">
+   <div class="avatar px rv">
+    <canvas id="me-spr" data-spr="me" width="16" height="26" aria-label="표은빈 픽셀 캐릭터"></canvas>
+    <div class="ped"></div>
+    <div class="plate">표은빈<small>CLASS: 서비스 기획자 → AI Game Maker</small></div>
+    <div class="traits"><span>웹소설 과몰입러</span><span>나혼렙 완독</span><span>VOC 수집가</span><span>AI 협업러</span></div>
+   </div>
+   <div class="pcard px rv">
+    <div class="tabs" role="tablist">
+     <button role="tab" aria-selected="true" aria-controls="tp1" id="tb1">프로필</button>
+     <button role="tab" aria-selected="false" aria-controls="tp2" id="tb2">이력</button>
+     <button role="tab" aria-selected="false" aria-controls="tp3" id="tb3">플레이 기록</button>
+    </div>
+    <div class="pane" role="tabpanel" id="tp1" aria-labelledby="tb1">
+     <p class="lead"><em>유연하게 듣고, 집요하게 생각하고, 명확하게 실행하는</em> 서비스 기획자예요.</p>
+     <p>B2B HR SaaS와 B2C 리워드, 구독 서비스에서 고객과 운영팀이 실제로 어디서 막히는지 찾아 기능과 정책으로 고쳐 왔어요.</p>
+     <p>일 밖에서는 웹소설, 웹툰, 게임을 하루도 빠짐없이 즐기는 덕후예요. 그냥 소비하고 끝내지 않고, 팬들이 어떤 장면에 열광하고 어떤 지점에서 등을 돌리는지까지 봐요. 그래서 “재밌다”를 감으로 끝내지 않고, 팬이 반응하는 포인트를 기획의 언어로 옮길 수 있어요. 일에서 쌓은 관점과 덕질에서 쌓은 관점이 게임 만들기에서 이렇게 이어져요.</p>
+     <div class="map">
+      <div><b>VOC에서 반복되는 불편을 먼저 고친다</b><i>→</i><span>플레이어가 이탈 직전에 겪는 마찰부터 본다</span></div>
+      <div><b>점수 계산식과 난이도 정책을 설계해 봤다</b><i>→</i><span>보상, 밸런스 공식을 규칙과 예외까지 정의할 수 있다</span></div>
+      <div><b>지표의 의미부터 정의한다</b><i>→</i><span>리텐션, 전투 로그를 “무엇을 판단할지”부터 설계한다</span></div>
+      <div><b>덕질하며 쌓은 팬의 시선</b><i>→</i><span>IP 팬이 게임에서 기다리는 장면과, 등 돌리게 만드는 지점을 안다</span></div>
+     </div>
+    </div>
+    <div class="pane" role="tabpanel" id="tp2" aria-labelledby="tb2" hidden>
+     <div class="job">
+      <div class="t"><h4>디웨일 / SaaS 서비스 기획자</h4><time>2026.06 ~ 2026.10</time></div>
+      <p class="prod">B2B HR SaaS '클랩' / 기획 1명, 개발 2명, QA 1명 스쿼드</p>
+      <div class="grps">
+       <div class="grp"><h5>신규 기능 기획과 출시</h5><p>고객사 평가 운영의 불편을 분석해 신규 기능 <b>3개</b> 기획, <b>2개</b> 출시. 목표 하나에 평가 회차를 여러 개 연결하는 구조와, 난이도별 점수 계산식 정책을 설계했어요.</p></div>
+       <div class="grp"><h5>고객 니즈 발굴과 영향 분석</h5><p>CSM, AM과 고객사 니즈를 찾아 리뷰 결과 대시보드를 신규 기획했어요. 기획 전에는 과거 변경 이력으로 <b>영향 범위</b>부터 분석했어요.</p></div>
+       <div class="grp"><h5>기획 산출물과 협업</h5><p>PRD, Figma 명세, 권한별 노출/비활성/예외 상태 정의부터 대기업 고객사 제안 PT까지 맡았어요.</p></div>
+      </div>
+      <q>요구를 그대로 구현하지 않는다. 산발적인 요구 속에서 핵심 문제를 정의하고 제품으로 푼다.</q>
+      <p class="g">→ 게임에서는 쏟아지는 유저 요청에서 진짜 문제를 골라 시스템 규칙으로 만들고 난이도와 보상 공식을 예외 케이스까지 설계할 수 있어요. 업데이트 전에 영향 범위부터 따지는 습관은 라이브 패치에도 그대로 써요.</p>
+     </div>
+     <div class="job">
+      <div class="t"><h4>링커리어 / 서비스 기획자</h4><time>2025.07 ~ 2026.01</time></div>
+      <p class="prod">리워드 앱 '타임스프레드' → 구독 캘린더 피벗 / 5개 개발팀 협업</p>
+      <div class="grps">
+       <div class="grp"><h5>CMS 백오피스 0→1 단독 기획</h5><p>피벗 후 운영 시스템이 없던 상태에서 <b>6개 모듈</b>을 혼자 설계해 런칭 일정에 맞췄어요. 기획서는 19차까지 개정했어요.</p></div>
+       <div class="grp"><h5>운영 병목 자동화</h5><p>운영팀 인터뷰로 찾은 일정 수작업 <b>750건</b>을 <b>15회</b> 업로드로 줄였어요. 시트 10개를 분석해 필수 컬럼과 유효성 검증을 설계했고, 요청 없던 일정 복사 기능도 직접 찾아 만들었어요.</p></div>
+       <div class="grp"><h5>운영 시나리오로 개발팀 설득</h5><p>복사 일정은 원본 연동 대신 독립 구조로, 고객 검색은 2단계 대신 1단계로 바꿨어요.</p></div>
+       <div class="grp"><h5>VOC와 지표로 개선</h5><p>iOS 커뮤니티 게시글 VOC를 월 <b>17건에서 5건 이내</b>로 줄였어요. BigQuery로 핵심 지표 15개 이상을 매일 봤어요.</p></div>
+      </div>
+      <q>기준이 없으면 쓸 사람에게 먼저 묻는다. 구현 편의성이 아니라 운영 현실을 기준으로 판단한다.</q>
+      <p class="g">→ 게임에서는 라이브 서비스의 VOC와 지표로 개선 우선순위를 정하고 이벤트 등록 같은 운영툴까지 고려해 기획할 수 있어요. 엑셀 데이터를 검증 구조까지 설계해 봐서 게임 기획 데이터 테이블도 익숙하게 다룰 수 있어요.</p>
+     </div>
+     <div class="job">
+      <div class="t"><h4>세일즈포스코리아 / Business Operation Intern</h4><time>2024.07 ~ 2024.12</time></div>
+      <p class="prod">B2B SaaS 영업 조직의 운영과 자동화</p>
+      <div class="grps">
+       <div class="grp"><h5>업무 자동화</h5><p>Google Apps Script와 Slack 웹훅으로 자동 알림을 만들어 10명 이상이 참여하는 주간 영업 회의의 데이터 확인 과정을 바꿨어요.</p></div>
+       <div class="grp"><h5>데이터 수집 자동화</h5><p>크롤링 툴 6종을 비교해 고르고 매뉴얼과 교육 세션까지 운영해 매출 데이터 수집 시간을 <b>2~3일에서 6시간</b>으로 줄였어요.</p></div>
+       <div class="grp"><h5>AI 리서치 프로세스</h5><p>Perplexity로 기업 정보 수집 체계를 만들고 산업군과 직원 규모별 데이터 스키마와 출력 형식을 정의했어요.</p></div>
+      </div>
+      <p class="g">→ 게임에서는 반복 작업을 도구로 바꾸는 습관이 AI Game Maker의 출발점이에요. AI에게 일을 맡길 때도 데이터 스키마와 출력 형식부터 정해요.</p>
+     </div>
+    </div>
+    <div class="pane" role="tabpanel" id="tp3" aria-labelledby="tb3" hidden>
+     <p class="lead">제가 오래 한 게임에는 <em>오래 남은 이유</em>가 있어요.</p>
+     <p>오버워치는 입시 때 스트레스를 풀려고 시작했는데 지금까지 이어진 게임이에요. 캐릭터성이 뚜렷해서 질리지 않았고, 최애는 아나와 애쉬예요. 요즘은 경쟁전보다 유저들이 직접 만든 사용자 설정 게임(워크샵)에서 이것저것 해 보는 게 더 재밌어요.</p>
+     <div class="genre">
+      <div>오버워치 / 입시 때부터 지금까지, 요즘은 워크샵<div class="bar"><i class="go" style="--w:92%"></i></div></div>
+      <div>웹소설 / 웹툰 / 콘텐츠 / 하루도 빠지지 않고<div class="bar c"><i class="go" style="--w:96%"></i></div></div>
+     </div>
+     <p>최애 IP는 '나 혼자만 레벨업'이에요. 웹소설과 웹툰을 모두 완독했고, 지금은 애니메이션도 보고 있어요. 이 작품뿐 아니라 웹소설과 웹툰을 다양하게 찾아 봐요. 그래서 IP가 게임이 될 때 팬이 기대하는 순간이 무엇인지 늘 궁금해요.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band" id="values" data-lv="1">
+ <div class="wrap">
+  <div class="sec-h rv"><span class="tag c">PLAYER PROFILE</span><h2>제가 일하는 방식</h2><p>산업은 달라도 문제를 발견하고 제품으로 해결하는 방향은 같았어요. 실제 프로젝트에서 얻은 세 가지 기준이고, 게임을 만들 때도 그대로 씁니다.</p></div>
+  <div class="vals">
+   <article class="val px rv">
+    <canvas aria-hidden="true" class="ic" data-spr="eye" width="8" height="8"></canvas>
+    <h3>많이 쓰는 것 ≠ 먼저 고칠 것</h3>
+    <p>사용자 수 1위 기능이 아니라, 반복해서 불편이 쌓이는 곳을 먼저 고칩니다. 지표 하나보다 여러 지표와 VOC를 겹쳐 봐요.</p>
+    <p class="ev">근거: 타임스프레드 iOS에서 규모, 반복 사용, VOC 세 기준이 겹친 커뮤니티를 개선</p>
+    <p class="gm">→ 게임이라면: DAU보다 “이탈 직전 반복되는 불만”부터</p>
+   </article>
+   <article class="val px rv">
+    <canvas aria-hidden="true" class="ic" data-spr="chat" width="8" height="8"></canvas>
+    <h3>기준이 없으면, 쓸 사람에게 먼저 묻는다</h3>
+    <p>레퍼런스가 없을 때 혼자 상상하지 않아요. 운영팀 인터뷰에서 “이걸 하나씩 올려야 하나요?”를 듣고 일괄 등록을 설계했어요.</p>
+    <p class="ev">근거: 링커리어 CMS: 실제 시트 양식을 열어 보고 7개 필수 컬럼 정의</p>
+    <p class="gm">→ 게임이라면: 플레이테스트 한 판이 회의 한 시간보다 정확하다</p>
+   </article>
+   <article class="val px rv">
+    <canvas aria-hidden="true" class="ic" data-spr="spark" width="8" height="8"></canvas>
+    <h3>속도는 AI에게, 판단은 내가</h3>
+    <p>AI 덕분에 만드는 건 점점 쉬워져요. 그래서 빠르게 만들 수 있을수록 “왜 이걸 만드는가”가 더 중요해진다고 생각해요. 무엇을 만들고 무엇을 버릴지는 제가 정합니다.</p>
+    <p class="ev">근거: 기획서 AI 검수 서비스: Claude Code로 1인 기획, 개발, 배포</p>
+    <p class="gm">→ 게임이라면: 프로토타입을 먼저 만들고 손맛으로 판단한다</p>
+   </article>
+  </div>
+ </div>
+</section>
+
+<section class="band" id="log" data-lv="2" style="background:var(--bg2)">
+ <div class="wrap">
+  <div class="sec-h rv"><span class="tag">LEVEL UP LOG</span><h2>기획만 하던 사람에서, 만드는 사람으로</h2><p>레벨은 직함이 아니라 할 수 있게 된 일로 올렸어요.</p></div>
+  <div class="log">
+   <div class="lvl px done rv" data-lv="1"><div class="t"><h3>업무를 자동화하던 사람</h3><time>세일즈포스 / 2024.07 ~ 2024.12</time></div><p>영업 조직의 반복 업무를 Apps Script, Slack 웹훅, 크롤링 툴로 자동화했어요. 매출 데이터 수집 시간을 2~3일에서 6시간으로 줄였어요.</p></div>
+   <div class="lvl px done rv" data-lv="2"><div class="t"><h3>서비스 기획자</h3><time>링커리어 / 디웨일 / 2025.07 ~ 2026.10</time></div><p>링커리어에서 VOC와 지표로 우선순위를 정하고 신규 서비스 백오피스를 0→1로 설계했어요. 디웨일에서는 B2B 고객사의 요구를 기능과 정책으로 바꿔 2개 기능을 출시했습니다.</p></div>
+   <div class="lvl px done rv" data-lv="3"><div class="t"><h3>AI로 직접 만드는 사람</h3><time>2026.03 ~</time></div><p>기획서 AI 검수 서비스를 혼자 기획, 개발, 배포했어요. 이후 PM 퀴즈, 그림검사 분석, 맛집지도까지 필요한 건 직접 만들어 씁니다.</p></div>
+   <div class="lvl px now rv" data-lv="4"><div class="t"><h3>AI Game Maker</h3><time>지금 / 이 사이트</time></div><p>첫 게임 결과물이 이 페이지 맨 위의 버그 헌터예요. 포트폴리오에 게임을 넣자는 기획과 어떤 게임이어야 하는지는 제가 정하고, 헌팅 게임 형식과 구현은 AI와 함께 만들었습니다.</p></div>
+   <div class="lvl px next rv" data-lv="?"><div class="t"><h3>NEXT / 넷마블네오</h3><time>2027.03 ~</time></div><p>현업 개발 조직에서, 아이디어를 플레이 가능한 게임으로 끝까지 만드는 경험을 쌓고 싶어요.</p></div>
+  </div>
+ </div>
+</section>
+
+<section class="band" id="stages" data-lv="3">
+ <div class="wrap">
+  <div class="sec-h rv"><span class="tag c">STAGE SELECT</span><h2>클리어한 스테이지</h2><p>모든 프로젝트를 WHY / HOW / RESULT로 정리했어요.</p></div>
+
+  <div class="stats">
+   <a class="stat px rv" href="#me" data-open-tab="tb2"><b>3<small>곳</small></b><span>IT 기업 실무<small>세일즈포스, 링커리어, 디웨일</small></span></a>
+   <a class="stat px rv" href="#st-dwhale"><b>2<small>개</small></b><span>B2B 신규 기능 출시<small>디웨일</small></span></a>
+   <a class="stat px rv" href="#st-cms"><b>0→1</b><span>CMS 백오피스 단독 기획<small>링커리어, 6개 모듈</small></span></a>
+   <a class="stat px rv" href="#st-ai"><b>4<small>개</small></b><span>AI로 직접 만든 서비스<small>기획서 AI 검수 외 3개</small></span></a>
+  </div>
+
+  <article class="feat px rv" id="st-ai">
+   <div class="art" aria-hidden="true">
+    <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+     <rect x="70" y="50" width="200" height="200" fill="#f6eefc"/><rect x="70" y="50" width="200" height="22" fill="#ff3ea5"/>
+     <rect x="88" y="92" width="120" height="10" fill="#b9a6cc"/><rect x="88" y="112" width="160" height="10" fill="#b9a6cc"/><rect x="88" y="132" width="90" height="10" fill="#ff3ea5"/><rect x="88" y="152" width="140" height="10" fill="#b9a6cc"/><rect x="88" y="172" width="110" height="10" fill="#b9a6cc"/>
+     <rect x="88" y="200" width="70" height="30" fill="#3ef0ff"/><text x="123" y="221" text-anchor="middle" font-family="NM" font-weight="700" font-size="16" fill="#120a1c">86</text>
+     <g id="lens"><rect x="215" y="150" width="70" height="70" fill="none" stroke="#ffd84a" stroke-width="10"/><rect x="280" y="215" width="14" height="14" fill="#ffd84a"/><rect x="292" y="227" width="14" height="14" fill="#ffd84a"/><rect x="304" y="239" width="14" height="14" fill="#ffd84a"/></g>
+     <rect x="300" y="70" width="12" height="12" fill="#3ef0ff"/><rect x="330" y="110" width="8" height="8" fill="#ff8ccc"/><rect x="40" y="230" width="10" height="10" fill="#ffd84a"/>
+    </svg>
+   </div>
+   <div class="body">
+    <span class="tag">FEATURED / AI 서비스</span>
+    <h3 style="font-size:clamp(24px,3vw,30px);margin-top:14px">기획서 AI 검수 서비스</h3>
+    <div class="meta"><span>Side Project / 1인</span><span>2026.03 ~ 04</span><span>기획 / 개발 / 배포</span></div>
+    <div class="whr">
+     <div><b>WHY</b><p>링커리어에서 기획 리뷰가 평균 3번 반복됐어요. 개발자, 디자이너, QA를 인터뷰해 보니 직군마다 기획서에서 보는 포인트가 달랐어요.</p></div>
+     <div><b>HOW</b><p>개발 구현 난이도, QA 소요 시간, 기존 서비스 정합성 3가지 검수 기준을 정의했어요. 기획서를 올리면 논리 구조, 실현 가능성, 핵심 요약, 개선안 4개 항목으로 분석해 줘요.</p></div>
+     <div><b>RESULT</b><p>Claude Code로 서버 없이 단일 HTML을 만들어 GitHub Pages에 배포했어요. Claude와 Gemini API 선택, 파일 업로드, PDF 저장을 지원하고, 기획서는 서버에 저장하지 않고 브라우저 안에서만 처리해요.</p></div>
+    </div>
+    <div class="chips"><span>Claude Code</span><span>Claude API</span><span>Gemini API</span><span>GitHub Pages</span></div>
+    <a class="btn" href="https://eunbin1341-hash.github.io/pm-review-studio/" target="_blank" rel="noopener">▶ 서비스 열기</a>
+   </div>
+  </article>
+
+  <div class="cards">
+   <article class="card wide px rv" id="st-dwhale">
+    <span class="tag c" style="align-self:flex-start">B2B SaaS 기능 기획</span>
+    <h3 style="margin-top:14px">클랩 평가 회차와 점수 정책 기획</h3>
+    <div class="meta"><span>디웨일</span><span>2026.06 ~ 10</span><span>기획 1명, 개발 2명, QA 1명</span></div>
+    <div class="big"><b>3개 기획 → 2개 출시</b><span>평가 회차 관리, 목표 난이도 점수 산정</span></div>
+    <details><summary>WHY / HOW / RESULT 보기</summary><div class="whr">
+     <div><b>WHY</b><p>목표 하나에 평가를 한 번만 할 수 있어서, 같은 목표를 다시 평가하려면 고객사가 목표를 매번 새로 등록해야 했어요.</p></div>
+     <div><b>HOW</b><p>목표 하나에 평가 회차 여러 개를 연결하는 구조와 회차별 기간 정책을 설계했어요. 목표 난이도(낮음, 중간, 높음)별 점수 계산식을 정의하고, 고객사가 적용 여부를 고를 수 있게 했어요. 기획 전에는 과거 변경 이력으로 영향 범위부터 분석했어요.</p></div>
+     <div><b>RESULT</b><p>평가 회차 관리와 목표 난이도 점수 산정을 출시했어요. 리뷰 결과 대시보드는 고객사 업로드 기준별 조회와 같은 형태의 엑셀 다운로드까지 기획했어요.</p></div>
+     <div><b>배운 점</b><p>고객 요구를 그대로 구현하지 않고, 산발적인 요구 속에서 핵심 문제를 정의해 제품으로 푸는 것이 기획자의 일이에요.</p></div>
+    </div></details>
+   </article>
+   <article class="card px rv">
+    <span class="tag c" style="align-self:flex-start">App 서비스 기획</span>
+    <h3 style="margin-top:14px">타임스프레드 iOS 커뮤니티 개선</h3>
+    <div class="meta"><span>링커리어</span><span>2025.08 ~ 09</span><span>개선 과제 4건</span></div>
+    <div class="big"><b>17 → 5건</b><span>게시글 업로드 VOC 월평균, 개선 후 첫 1개월</span></div>
+    <details><summary>WHY / HOW / RESULT 보기</summary><div class="whr">
+     <div><b>WHY</b><p>iOS 유저 비율이 약 6%. 기능마다 지표 적재 시점이 달라 무엇부터 고칠지 비교할 수 없었어요.</p></div>
+     <div><b>HOW</b><p>활성화 지표와 지표 사전부터 정비하고, 사용 규모, 재방문 반복 사용, VOC 세 기준이 겹치는 기능을 골랐어요.</p></div>
+     <div><b>RESULT</b><p>사진 자동 리사이징, 글자 수 표시, 서식 도구 통일, 운영 정책 안내 4건을 기획했어요.</p></div>
+    </div></details>
+   </article>
+   <article class="card px rv" id="st-cms">
+    <span class="tag c" style="align-self:flex-start">백오피스 0→1</span>
+    <h3 style="margin-top:14px">신규 서비스 CMS 어드민 기획</h3>
+    <div class="meta"><span>링커리어</span><span>2025.09 ~ 2026.01</span><span>5개 팀 협업</span></div>
+    <div class="big"><b>750건 → 15회</b><span>단건 등록을 50건 단위 일괄 업로드로</span></div>
+    <details><summary>WHY / HOW / RESULT 보기</summary><div class="whr">
+     <div><b>WHY</b><p>서비스 피벗으로 전용 운영 시스템이 없었고, 캘린더마다 일정 수백 개를 하나씩 올려야 했어요.</p></div>
+     <div><b>HOW</b><p>마케팅팀과 운영팀이 실제로 쓰던 시트 10개를 열어 7개 필수 컬럼을 정의하고, 컬럼마다 유효성 검증 함수를 걸어 업로드 전에 오류를 잡게 했어요. 복사 일정은 원본 연동 대신 독립 구조로 백엔드팀을 설득했어요.</p></div>
+     <div><b>RESULT</b><p>일괄 등록과 복사 기능으로 반복 입력을 줄이고, 임시저장 후 검수해 잘못된 일정이 노출되지 않게 했어요.</p></div>
+     <div><b>고비</b><p>서버 분리 때문에 고객 검색이 2단계로 개발되고 있었어요. 운영 리스크를 보고서로 정리해 개발팀장까지 설득했고, 1단계 검색으로 바꿨어요.</p></div>
+     <div><b>배운 점</b><p>업로드 한도(1회 50건)를 UX 설계가 끝난 뒤에야 확인해 분할 업로드로 다시 설계했어요. 그 뒤로는 기술 제약을 기획 초기에 개발팀과 먼저 확인해요.</p></div>
+    </div></details>
+   </article>
+  </div>
+
+  <h3 class="rv" style="margin-top:44px;font-size:20px">사이드 퀘스트 / AI로 만든 작은 도구들</h3>
+  <div class="gal">
+   <div class="mini px rv"><h4>PM 퀴즈 사이트</h4><p>공부하던 PM 자료집을 퀴즈로 바꿔 출퇴근길에 복습했어요.</p></div>
+   <div class="mini px rv"><h4>그림검사 분석 웹</h4><p>가족 업무에서 출발. Gemini API로 그림 업로드부터 해석까지 연결했어요.</p></div>
+   <div class="mini px rv"><h4>맛집지도</h4><p>흩어진 데이터를 탐색하기 쉬운 지도로 만들어 Netlify로 배포, 친구들과 쓰고 있어요.</p><a class="mini-link" href="https://sparkly-cassata-0cc9b6.netlify.app/" target="_blank" rel="noopener">▶ 지도 열기</a></div>
+  </div>
+ </div>
+</section>
+
+<section class="band" id="ai" data-lv="3" style="background:var(--bg2)">
+ <div class="wrap">
+  <div class="sec-h rv"><span class="tag">AI WORKFLOW</span><h2>이 사이트를 만든 방법</h2><p>공고가 묻는 “AI와 사람의 역할 구분”을 이 사이트 제작 과정으로 그대로 보여 드려요.</p></div>
+  <div class="flow">
+   <div class="side px rv"><h3><span class="tag">ME</span>제가 정한 것</h3><ul>
+    <li>컨셉 기획<small>포트폴리오를 한 판의 게임으로 구성하고, 첫 화면에 넣을 게임을 직접 풀어서 설명</small></li>
+    <li>재료 정리<small>제 이력, 프로젝트, 포트폴리오를 md 파일로 직접 구조화</small></li>
+    <li>프롬프트 설계<small>공고의 평가 역량 3가지를 기준으로 타깃, 톤, 섹션 구성을 정의</small></li>
+    <li>무드 결정<small>원래 취향인 파스텔 픽셀을 액션 스튜디오 톤에 맞춰 다크 네온으로 조정</small></li>
+    <li>문구 검수<small>회고에서 가치관 문장을 뽑고, 사실과 다른 문장은 직접 짚어서 수정</small></li>
+   </ul></div>
+   <div class="side px ai rv"><h3><span class="tag c">AI</span>AI에게 맡긴 것</h3><ul>
+    <li>공고와 회사 정보 수집, 요약<small>JS로 렌더링되는 채용 페이지를 브라우저로 직접 읽기</small></li>
+    <li>기존 포트폴리오 PDF 구조화<small>19장 분량을 역량별로 다시 분류</small></li>
+    <li>게임 형식 제안<small>문제를 쏴서 해결하는 헌팅 게임으로 제안</small></li>
+    <li>코드 구현<small>캔버스 게임, 픽셀 스프라이트, 스크롤 애니메이션</small></li>
+    <li>반복 수정<small>플레이해 보고 난이도와 레이아웃 피드백 반영</small></li>
+   </ul></div>
+  </div>
+  <p class="rule rv"><b>제 원칙:</b> AI가 낸 첫 안은 초안일 뿐이에요. 직접 플레이해 보고 어색한 곳을 찾아서 다시 시키는 것까지가 제 일입니다.</p>
+ </div>
+</section>
+
+<section class="band" id="neo" data-lv="3">
+ <div class="wrap">
+  <div class="sec-h rv"><span class="tag c">WHY NETMARBLE NEO</span><h2>좋아하는 걸 만드는 팀에서</h2></div>
+  <div class="neo">
+   <div class="px rv"><h3>원작 팬에서 시작했어요</h3><p>'나 혼자만 레벨업'은 웹소설과 웹툰을 모두 완독하고 애니메이션까지 챙겨 보는 작품이에요. 그 세계를 게임으로 만든 팀이 넷마블네오라는 걸 알고, 좋아하는 이야기를 플레이로 바꾸는 일을 가까이서 배우고 싶어졌습니다. 이 포트폴리오를 레벨업 구조로 만든 것도 그래서예요.</p>
+    <ul class="readlog" aria-label="나 혼자만 레벨업 감상 기록">
+     <li><b>웹소설</b><span class="m"><i style="--w:1"></i></span><small>완독</small></li>
+     <li><b>웹툰</b><span class="m"><i style="--w:1"></i></span><small>완독</small></li>
+     <li><b>애니메이션</b><span class="m c"><i style="--w:.6"></i></span><small>시청 중</small></li>
+    </ul>
+   </div>
+   <div class="px rv perk"><h3>제가 보탤 수 있는 것</h3>
+    <div class="chips-tab" role="tablist" aria-label="보탤 수 있는 역량">
+     <button role="tab" aria-selected="true" aria-controls="pk-live" id="pkt-live">라이브 서비스 감각</button>
+     <button role="tab" aria-selected="false" aria-controls="pk-ip" id="pkt-ip" tabindex="-1">IP 팬의 시선</button>
+     <button role="tab" aria-selected="false" aria-controls="pk-ai" id="pkt-ai" tabindex="-1">AI 프로토타이핑</button>
+    </div>
+    <div class="stage-box">
+     <div class="pk play" role="tabpanel" id="pk-live" aria-labelledby="pkt-live">
+      <div class="viz viz-live" aria-hidden="true"><i style="--h:85%;--n:0"></i><i style="--h:75%;--n:1"></i><i style="--h:92%;--n:2"></i><span class="flag"></span><i class="a" style="--h:45%;--n:3"></i><i class="a" style="--h:32%;--n:4"></i><i class="a" style="--h:28%;--n:5"></i><span class="cap">VOC 월 17건 → 5건 이내</span><span class="ax b">개선 전</span><span class="ax f">개선 후</span></div>
+      <p class="pk-t">VOC와 지표로 무엇부터 고칠지 정해요.</p>
+      <p class="pk-d">많이 쓰는 기능보다 불만이 반복해서 쌓인 곳을 먼저 고쳐요. 패치 전에는 영향 범위부터 따져요.</p>
+     </div>
+     <div class="pk" role="tabpanel" id="pk-ip" aria-labelledby="pkt-ip" hidden>
+      <div class="viz viz-ip" aria-hidden="true">
+       <div class="scene" style="--n:0"><b>각성 장면</b><span class="m"><i style="--w:.96"></i></span><em>♥ 꼭 살릴 것</em></div>
+       <div class="scene" style="--n:1"><b>보스 레이드</b><span class="m"><i style="--w:.85"></i></span><em>♥ 기대 큼</em></div>
+       <div class="scene x" style="--n:2"><b>설정 붕괴</b><span class="m"><i style="--w:.25"></i></span><em>✕ 이탈 지점</em></div>
+      </div>
+      <p class="pk-t">팬이 기다리는 장면과 등 돌리는 지점을 짚어요.</p>
+      <p class="pk-d">원작을 완독한 팬의 눈으로, 게임이 될 때 꼭 살아야 할 순간과 건드리면 안 되는 설정을 골라요.</p>
+     </div>
+     <div class="pk" role="tabpanel" id="pk-ai" aria-labelledby="pkt-ai" hidden>
+      <div class="viz viz-ai" aria-hidden="true">
+       <p class="term">문제를 쏘는 미니게임 만들어 줘</p>
+       <div class="blocks"><i style="--n:0"></i><i style="--n:1"></i><i style="--n:2"></i><i style="--n:3"></i><i style="--n:4"></i><i style="--n:5"></i><i style="--n:6"></i><i style="--n:7"></i><i style="--n:8"></i><i style="--n:9"></i><i style="--n:10"></i><i style="--n:11"></i><i style="--n:12"></i><i style="--n:13"></i><i style="--n:14"></i><i style="--n:15"></i><i style="--n:16"></i><i style="--n:17"></i><i style="--n:18"></i><i style="--n:19"></i></div>
+       <span class="ready">▶ 플레이 가능</span>
+      </div>
+      <p class="pk-t">아이디어를 하루 만에 플레이 가능하게 만들어요.</p>
+      <p class="pk-d">이 페이지 맨 위 버그 헌터도 게임을 넣자는 기획과 전체 구성은 제가 정하고, 헌팅 게임이라는 형식과 구현은 AI가 맡았어요.</p>
+     </div>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band" id="contact">
+ <div class="wrap">
+  <div class="cta px rv">
+   <span class="tag">QUEST BOARD</span>
+   <h2 style="margin-top:16px">다음 스테이지를 함께 만들고 싶어요</h2>
+   <p>여기까지 봐 주셔서 고마워요. 버그 헌터 최고 기록에 한 번 더 도전해 보세요.</p>
+   <div class="row"><a class="btn" href="#play">↑ 게임 다시 하기</a></div>
+   <p class="mail" id="mail">eunbin1341@gmail.com</p>
+  </div>
+ </div>
+</section>
+</main>
+<footer>© 2026 표은빈 / 넷마블체 사용 / AI와 함께 만들었어요</footer>
+<div class="toast" id="toast">LEVEL UP!</div>
+
+<script>
+{
+const SPR={
+ bug:{c:["","#3ef0ff","#0b0612"],m:["1......1",".1....1.","..1111..",".112211.","11111111","1.1111.1","..1..1..",".1....1."]},
+ voc:{c:["","#ffd84a","#b8860b"],m:["...11...","..1111..",".112211.","11122111","11122111",".111111.","..1221..","...11..."]},
+ heart:{c:["","#ff3ea5","#ffb3d9"],m:[".11..11.","1221111.","12111111","11111111",".111111.","..1111..","...11...","........"]},
+ eye:{c:["","#ff3ea5","#f6eefc"],m:["........","..1111..",".122221.","12211221","12211221",".122221.","..1111..","........"]},
+ chat:{c:["","#3ef0ff","#120a1c"],m:["11111111","1......1","1.2.2..1","1......1","11111111",".11.....","1.......","........"]},
+ spark:{c:["","#ffd84a","#ff3ea5"],m:["...1....","...1....","..121...","1112111.","..121...","...1....","...1..2.","......2."]},
+ me:{c:{1:'#07040c',2:'#15131a',h:'#4a4458',3:'#ffd9c2',s:'#0b0b10',g:'#ff3ea5',w:'#ffffff',m:'#e0607e',j:'#26232e',k:'#4d4a5c',l:'#131118',p:'#1a1820',t:'#3d3444',u:'#6a5c74',b:'#0e0d12',n:'#6d6a7c'},m:['.....111111.....','....12222221....','...1222hh2221...','..122222222221..','..122333333221..','..123333333321..','..12ssgsssgs21..','..w2333333332w..','..22333mm33322..','..221333333122..','..22lkjjjjkl22..','.22jkjjjjjjkj22.','.2jjkjjjljjjkj2.','1jjjkjjjljjjkjj1','1jjkjjjjljjjjkj1','1lj3jjjjljjjj3l1','..11jjjjjjjj11..','...1pppppppp1...','...1ppp11ppp1...','....1tt..tt1....','....1tu..ut1....','....1tt..tt1....','...1bbn..nbb1...','...1bbb..bbb1...','..1bbbb..bbbb1..','..11111..11111..']},
+ x:{c:["","#ff3ea5"],m:["1.....1",".1...1.","..1.1..","...1...","..1.1..",".1...1.","1.....1"]}
+};
+const draw=(ctx,k,x,y,s)=>{const d=SPR[k];d.m.forEach((r,j)=>[...r].forEach((v,i)=>{if(v==='.')return;ctx.fillStyle=d.c[v];ctx.fillRect(Math.round(x+i*s),Math.round(y+j*s),s,s)}))};
+document.querySelectorAll('canvas[data-spr]').forEach(c=>draw(c.getContext('2d'),c.dataset.spr,0,0,1));
+
+/* player tabs */
+const tbs=[...document.querySelectorAll('.tabs button')];
+const sel=b=>{tbs.forEach(x=>{const on=x===b;x.setAttribute('aria-selected',on);document.getElementById(x.getAttribute('aria-controls')).hidden=!on})};
+tbs.forEach((b,i)=>{b.onclick=()=>sel(b);b.onkeydown=e=>{const d=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;if(d){const n=tbs[(i+d+tbs.length)%tbs.length];n.focus();sel(n)}}});
+document.querySelectorAll('[data-open-tab]').forEach(a=>a.addEventListener('click',()=>sel(document.getElementById(a.dataset.openTab))));
+/* typing */
+const lines=["AI Game Maker 지원","문제를 정의하고, 끝까지 만듭니다","좋아하는 이야기는 끝까지 보는 기획자"];
+const ty=document.getElementById('typed');let li=0,ci=0,del=false;
+const tick=()=>{const L=lines[li];ty.textContent=L.slice(0,ci);
+ if(!del&&ci<L.length)ci++;else if(!del){del=true;return setTimeout(tick,1600)}else if(ci>0)ci--;else{del=false;li=(li+1)%lines.length}
+ setTimeout(tick,del?35:80)};
+if(matchMedia('(prefers-reduced-motion:reduce)').matches)ty.textContent=lines[0];else tick();
+
+/* audio */
+let ac;const beep=(f,d=.06,t='square',v=.04)=>{try{ac=ac||new AudioContext();const o=ac.createOscillator(),g=ac.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}};
+
+/* game */
+const cv=document.getElementById('cv'),g=cv.getContext('2d'),W=480;let H=246;
+const fit=()=>{const r=cv.getBoundingClientRect();if(r.width){H=Math.max(200,Math.round(W*r.height/r.width));cv.height=H}};const fitRO=new ResizeObserver(fit);fitRO.observe(cv);
+const $=id=>document.getElementById(id);
+let st='idle',ents=[],parts=[],texts=[],score,combo,maxC,hits,shots,lvl,t0,last,spawnT,mx=-99,my=-99,best=0;
+try{best=+localStorage.getItem('bh_best')||0}catch(e){}
+const stars=Array.from({length:40},()=>({x:Math.random()*W,y:Math.random()*H,s:Math.random()<.2?2:1}));
+const reset=()=>{ents=[];parts=[];texts=[];score=0;combo=0;maxC=0;hits=0;shots=0;lvl=1;spawnT=0};
+const spawn=p=>{const r=Math.random(),k=r<.16?'voc':r<.34?'heart':'bug',sc=k==='voc'?3:4,sz=8*sc;
+ ents.push({k,x:20+Math.random()*(W-40-sz),y:34+Math.random()*(H-60-sz),sz,sc,born:performance.now(),life:(k==='voc'?900:1700)-p*600,vx:(Math.random()-.5)*(k==='voc'?60:30)*(1+p)})};
+const pop=(x,y,col)=>{for(let i=0;i<10;i++)parts.push({x,y,vx:(Math.random()-.5)*160,vy:(Math.random()-.5)*160,l:.5,c:col})};
+const say=(x,y,s,c)=>texts.push({x,y,s,c,l:.8});
+const toXY=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height]};
+cv.addEventListener('pointermove',e=>{[mx,my]=toXY(e)});
+cv.addEventListener('pointerleave',()=>{mx=my=-99});
+cv.addEventListener('pointerup',e=>{if(e.pointerType!=='mouse')setTimeout(()=>{mx=my=-99},120)});
+cv.addEventListener('pointerdown',e=>{if(st!=='play')return;const[x,y]=toXY(e);mx=x;my=y;shots++;
+ for(let i=ents.length-1;i>=0;i--){const n=ents[i];if(x>=n.x-4&&x<=n.x+n.sz+4&&y>=n.y-4&&y<=n.y+n.sz+4){ents.splice(i,1);
+  if(n.k==='heart'){score=Math.max(0,score-20);combo=0;say(x,y,'-20 잘 되는 기능!','#ff3ea5');pop(x,y,'#ff3ea5');beep(140,.18,'sawtooth');shake=8;return}
+  hits++;combo++;maxC=Math.max(maxC,combo);const mul=combo>=10?3:combo>=5?2:1,pt=(n.k==='voc'?30:10)*mul;score+=pt;
+  say(x,y,'+'+pt+(mul>1?' x'+mul:''),n.k==='voc'?'#ffd84a':'#3ef0ff');pop(x,y,n.k==='voc'?'#ffd84a':'#3ef0ff');beep(n.k==='voc'?880:520+combo*20);
+  const nl=score>=450?4:score>=250?3:score>=100?2:1;if(nl>lvl){lvl=nl;say(W/2-40,H/2,'LEVEL UP!','#ffd84a');beep(660,.1);setTimeout(()=>beep(990,.15),90)}
+  return}}
+ combo=0;say(x,y,'MISS','#b9a6cc')});
+let shake=0;
+const start=()=>{reset();st='play';t0=last=performance.now();$('ovStart').hidden=true;$('ovEnd').hidden=true;$('hud').hidden=false;beep(440,.08);setTimeout(()=>beep(660,.1),80)};
+const end=()=>{st='end';$('hud').hidden=true;const acc=shots?Math.round(hits/shots*100):0,rk=score>=450&&acc>=70?'S':score>=300?'A':score>=150?'B':'C';
+ $('rS').textContent=score;$('rA').textContent=acc+'%';$('rC').textContent=maxC;$('rR').textContent=rk;
+ $('rTitle').textContent=rk==='S'?'PERFECT HUNT!':rk==='A'?'GREAT!':'CLEAR!';
+ const nb=score>best;if(nb){best=score;try{localStorage.setItem('bh_best',best)}catch(e){}}
+ $('rBest').textContent=nb?'최고 기록 갱신! 이 정도면 QA 팀에서도 탐낼 실력이에요.':'내 최고 기록 '+best+'점. 하트를 피하면 점수가 훨씬 올라가요.';
+ $('ovEnd').hidden=false;beep(523,.1);setTimeout(()=>beep(784,.2),120)};
+$('bStart').onclick=start;$('bAgain').onclick=start;
+
+const loop=now=>{const dt=Math.min(.05,(now-(last||now))/1000);last=now;
+ g.save();if(shake>0){g.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);shake*=.85;if(shake<.5)shake=0}
+ g.fillStyle='#0b0612';g.fillRect(-10,-10,W+20,H+20);
+ stars.forEach(s=>{s.y+=dt*(st==='play'?30:8)*s.s;if(s.y>H)s.y=0;g.fillStyle=s.s>1?'#ff8ccc55':'#ffffff33';g.fillRect(s.x|0,s.y|0,s.s,s.s)});
+ g.fillStyle='#2a1a3c';g.fillRect(0,H-14,W,14);for(let i=0;i<W;i+=16){g.fillStyle='#3a2552';g.fillRect(i,H-14,8,4)}
+ if(st==='play'){const el=(now-t0)/1000,p=Math.min(1,el/30),left=Math.max(0,30-el);
+  spawnT-=dt*1000;if(spawnT<=0){spawn(p);spawnT=900-p*450}
+  ents=ents.filter(n=>{n.x+=n.vx*dt;if(n.x<6||n.x>W-n.sz-6)n.vx*=-1;const a=now-n.born;if(a>n.life){if(n.k!=='heart'&&combo>0){combo=0}return false}return true});
+  $('hS').textContent=score;$('hC').innerHTML='x'+(combo>=10?3:combo>=5?2:1)+'<span class="cc"> ('+combo+')</span>';$('hL').textContent=lvl;$('hT').textContent=Math.ceil(left);
+  g.fillStyle='#ff3ea5';g.fillRect(0,0,W*(left/30),3);
+  if(left<=0)end()}
+ if(st==='idle'){const tt=now/600;draw(g,'bug',W*.05,H*.18+Math.sin(tt)*6,4);draw(g,'voc',W*.88,H*.16+Math.cos(tt)*6,4);draw(g,'heart',W*.88,H*.72+Math.sin(tt+1)*5,4)}
+ ents.forEach(n=>{const a=(now-n.born)/n.life,blink=a>.75&&((now/80|0)%2);if(!blink)draw(g,n.k,n.x,n.y+Math.sin(now/200+n.x)*2,n.sc)});
+ parts=parts.filter(q=>{q.x+=q.vx*dt;q.y+=q.vy*dt;q.l-=dt;g.fillStyle=q.c;g.globalAlpha=Math.max(0,q.l*2);g.fillRect(q.x|0,q.y|0,3,3);g.globalAlpha=1;return q.l>0});
+ g.font='700 10px NM,sans-serif';
+ texts=texts.filter(t=>{t.y-=dt*30;t.l-=dt;g.globalAlpha=Math.max(0,t.l*1.4);g.fillStyle='#000';g.fillText(t.s,t.x+1,t.y+1);g.fillStyle=t.c;g.fillText(t.s,t.x,t.y);g.globalAlpha=1;return t.l>0});
+ if(mx>0){g.fillStyle='#ff3ea5';g.fillRect(mx-9|0,my|0,6,2);g.fillRect(mx+4|0,my|0,6,2);g.fillRect(mx|0,my-9|0,2,6);g.fillRect(mx|0,my+4|0,2,6)}
+ g.restore();requestAnimationFrame(loop)};
+requestAnimationFrame(loop);
+
+/* neo skill chips */
+const pks=[...document.querySelectorAll('.chips-tab button')];
+const showPk=b=>{pks.forEach(x=>{const on=x===b,pn=document.getElementById(x.getAttribute('aria-controls'));x.setAttribute('aria-selected',on);x.tabIndex=on?0:-1;pn.hidden=!on;pn.classList.remove('play');if(on){void pn.offsetWidth;pn.classList.add('play')}})};
+pks.forEach((b,i)=>{b.onclick=()=>showPk(b);b.onkeydown=e=>{const d=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;if(d){const n=pks[(i+d+pks.length)%pks.length];n.focus();showPk(n)}}});
+/* reveal + counters */
+const count=el=>{const n=+el.dataset.n,s=el.dataset.s||'',t=performance.now();const f=now=>{const p=Math.min(1,(now-t)/1100),v=Math.round(n*(1-(1-p)**3));el.innerHTML=v+(s?'<small>'+s+'</small>':'');if(p<1)requestAnimationFrame(f)};requestAnimationFrame(f)};
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;e.target.classList.add('on');e.target.querySelectorAll('[data-n]').forEach(count);io.unobserve(e.target)}),{threshold:.15});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+
+/* xp bar + level toasts */
+const xp=$('xp'),lvT=$('lvTxt'),toast=$('toast'),secs=[...document.querySelectorAll('main section')],links=[...document.querySelectorAll('nav a')];
+let shownLv=1,tt;
+const showToast=s=>{toast.textContent=s;toast.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove('show'),1300)};
+const onScroll=()=>{const h=document.documentElement,p=h.scrollTop/(h.scrollHeight-h.clientHeight||1);xp.style.transform='scaleX('+p.toFixed(4)+')';
+ const lv=p>.97?4:p>.55?3:p>.25?2:1;
+ if(lv>shownLv){shownLv=lv;showToast(lv===4?'QUEST COMPLETE!':'LEVEL UP! Lv.'+lv);beep(880,.08,'square',.02)}
+ lvT.textContent=lv===4?'MAX':'Lv.'+lv;
+ let cur=secs[0];secs.forEach(s=>{if(s.getBoundingClientRect().top<120)cur=s});links.forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+cur.id))};
+addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+/* copy email */
+}
+</script>
+</body>
+</html>
